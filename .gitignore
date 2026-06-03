@@ -2,4 +2,5 @@
 node_modules/
 data/leads.json
 data/leads.csv
+data/sessions.json
 *.log

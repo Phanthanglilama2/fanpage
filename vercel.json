@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/webhook",
+      "destination": "/api/webhook"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/leads",
+      "destination": "/api/leads"
+    },
+    {
+      "source": "/leads.csv",
+      "destination": "/api/leads-csv"
+    }
+  ]
+}

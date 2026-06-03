@@ -4,8 +4,10 @@
   "description": "Chatbot tu van tuyen sinh lai xe tich hop Facebook Fanpage Messenger.",
   "type": "module",
   "scripts": {
+    "dev": "node src/server.js",
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "vercel:dev": "vercel dev"
   },
   "engines": {
     "node": ">=20"

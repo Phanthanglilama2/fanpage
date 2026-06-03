@@ -1,6 +1,8 @@
 # Chatbot tuyển sinh lái xe cho Fanpage
 
-Bộ này là chatbot Messenger Webhook cho Fanpage: tự động chào hỏi, phân loại nhu cầu, tư vấn hạng bằng, báo học phí/hồ sơ, xin số điện thoại và lưu danh sách đăng ký để nhân viên gọi lại.
+Chatbot Messenger Webhook cho Fanpage: tự động chào hỏi, phân loại nhu cầu, tư vấn hạng bằng, báo học phí/hồ sơ, xin số điện thoại và lưu danh sách đăng ký để nhân viên gọi lại.
+
+Project hiện được cấu hình để deploy bằng Vercel.
 
 ## Luồng tư vấn
 
@@ -9,8 +11,25 @@ Bộ này là chatbot Messenger Webhook cho Fanpage: tự động chào hỏi, p
 3. Chatbot tư vấn lợi ích theo nhu cầu.
 4. Chatbot báo học phí hoặc hồ sơ khi khách hỏi.
 5. Chatbot xin số điện thoại.
-6. Khi có số điện thoại, hệ thống lưu lead vào `data/leads.json` và `data/leads.csv`.
-7. Nhân viên gọi lại, xác nhận lịch học và cập nhật trạng thái trong file lead hoặc CRM riêng.
+6. Khi có số điện thoại, hệ thống lưu lead.
+7. Nhân viên gọi lại, xác nhận lịch học và cập nhật danh sách đăng ký.
+
+## Cấu trúc chính
+
+```text
+api/
+  health.js       API kiểm tra tình trạng trên Vercel
+  leads.js        API xem lead dạng JSON
+  leads-csv.js    API tải lead dạng CSV
+  webhook.js      Webhook Messenger cho Fanpage
+src/
+  conversationEngine.js  Kịch bản chatbot
+  courseCatalog.js       Học phí và hồ sơ khóa học
+  leadStore.js           Lưu lead local hoặc Upstash Redis/KV
+  messenger.js           Gửi tin nhắn qua Meta Send API
+  metaWebhook.js         Xử lý webhook Meta
+vercel.json              Rewrite /webhook, /health, /leads
+```
 
 ## Chạy thử local
 
@@ -21,23 +40,33 @@ Copy-Item .env.example .env
 npm.cmd start
 ```
 
-Nếu PowerShell không chặn `npm.ps1`, bạn có thể dùng `npm start` như bình thường.
+Nếu PowerShell không chặn `npm.ps1`, có thể dùng:
 
-Webhook chạy ở:
-
-```text
-http://localhost:3000/webhook
+```powershell
+npm start
 ```
 
-Kiểm tra tình trạng server:
+Kiểm tra server local:
 
 ```text
 http://localhost:3000/health
 ```
 
-## Cấu hình biến môi trường
+Webhook local:
 
-Mở file `.env` và điền:
+```text
+http://localhost:3000/webhook
+```
+
+Muốn test gần giống Vercel hơn thì cài Vercel CLI và chạy:
+
+```powershell
+npm.cmd run vercel:dev
+```
+
+## Biến môi trường
+
+Tạo `.env` khi chạy local, hoặc nhập trong Vercel Dashboard khi deploy:
 
 ```text
 PAGE_ACCESS_TOKEN=token_cua_fanpage
@@ -47,133 +76,107 @@ APP_SECRET=app_secret_cua_meta
 ADMIN_TOKEN=mat_khau_xem_leads
 ```
 
-`VERIFY_TOKEN` là chuỗi bạn tự đặt, nhưng phải nhập giống hệt khi cấu hình Webhook trong Meta Developers.
+`VERIFY_TOKEN` là chuỗi bạn tự đặt, nhưng phải nhập giống hệt trong Meta Developers khi cấu hình Webhook.
 
-## Tích hợp vào Fanpage
+## Lưu lead trên Vercel
 
-1. Tạo ứng dụng trong Meta Developers.
+Vercel Functions không phù hợp để lưu lead lâu dài bằng file trong project. Vì vậy khi deploy thật, nên kết nối Upstash Redis/KV trên Vercel Marketplace.
+
+Sau khi connect Upstash Redis/KV vào project, Vercel thường tự thêm các biến:
+
+```text
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
+```
+
+Nếu dashboard hiển thị tên biến Upstash trực tiếp, cũng có thể dùng:
+
+```text
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+```
+
+Tùy chọn đổi key lưu lead:
+
+```text
+LEADS_STORAGE_KEY=fanpage-driving-school-leads
+SESSIONS_STORAGE_KEY=fanpage-driving-school-sessions
+```
+
+Khi không có các biến Redis/KV, hệ thống sẽ dùng local file `data/leads.json` và `data/leads.csv`, phù hợp để chạy thử trên máy.
+Khi deploy Vercel production, nên bật Redis/KV để lưu cả lead và trạng thái hội thoại giữa các lần gọi function.
+
+## Deploy bằng Vercel
+
+1. Push project này lên GitHub.
+2. Vào Vercel, chọn **Add New Project**.
+3. Import repository GitHub.
+4. Framework Preset: chọn **Other** nếu Vercel không tự nhận.
+5. Build Command: để trống hoặc dùng mặc định.
+6. Output Directory: để trống.
+7. Thêm Environment Variables:
+   - `PAGE_ACCESS_TOKEN`
+   - `VERIFY_TOKEN`
+   - `GRAPH_API_VERSION`
+   - `APP_SECRET`
+   - `ADMIN_TOKEN`
+   - `KV_REST_API_URL`
+   - `KV_REST_API_TOKEN`
+   - `SESSIONS_STORAGE_KEY`
+8. Bấm **Deploy**.
+
+Sau khi deploy, Vercel sẽ cấp domain dạng:
+
+```text
+https://ten-du-an.vercel.app
+```
+
+Webhook URL dùng cho Meta:
+
+```text
+https://ten-du-an.vercel.app/webhook
+```
+
+Kiểm tra tình trạng:
+
+```text
+https://ten-du-an.vercel.app/health
+```
+
+## Kết nối Fanpage trong Meta Developers
+
+1. Tạo app trong Meta Developers.
 2. Thêm sản phẩm Messenger.
-3. Lấy Page Access Token cho Fanpage.
-4. Deploy server này lên nơi có HTTPS công khai như Render, Railway, VPS hoặc Cloudflare Tunnel.
-5. Trong Meta Developers, cấu hình Webhook:
-   - Callback URL: `https://ten-mien-cua-ban/webhook`
-   - Verify Token: giống `VERIFY_TOKEN` trong `.env`
-   - Subscribe event: `messages`, `messaging_postbacks`
-6. Gắn ứng dụng với Fanpage và bật quyền nhắn tin cần thiết.
-7. Nhắn thử vào Fanpage bằng tài khoản tester.
-
-Tài liệu Meta nên mở khi cấu hình:
-
-- Messenger Webhooks: https://developers.facebook.com/docs/messenger-platform/webhooks
-- Send API: https://developers.facebook.com/docs/messenger-platform/reference/send-api/
-- Messenger Platform overview: https://developers.facebook.com/docs/messenger-platform/
-
-## Deploy bằng Render
-
-Project đã có sẵn file `render.yaml`, nên có thể deploy theo Blueprint trên Render.
-
-### Bước 1: Đưa code lên GitHub
-
-Tạo repository GitHub rồi push toàn bộ project này lên. Render sẽ lấy code từ GitHub để build và chạy webhook.
-
-### Bước 2: Tạo Web Service trên Render
-
-Trong Render:
-
-1. Chọn **New**.
-2. Chọn **Blueprint** nếu muốn Render đọc `render.yaml`, hoặc chọn **Web Service** và trỏ tới repository.
-3. Nếu tạo Web Service thủ công, dùng cấu hình:
-   - Runtime: `Node`
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - Health Check Path: `/health`
-
-Render sẽ cấp một domain dạng:
+3. Lấy Page Access Token của Fanpage và nhập vào Vercel biến `PAGE_ACCESS_TOKEN`.
+4. Vào phần Webhooks hoặc Messenger Webhooks.
+5. Callback URL:
 
 ```text
-https://ten-service.onrender.com
+https://ten-du-an.vercel.app/webhook
 ```
 
-Webhook URL dùng cho Meta sẽ là:
-
-```text
-https://ten-service.onrender.com/webhook
-```
-
-### Bước 3: Thêm biến môi trường trên Render
-
-Vào service trên Render, mở **Environment** và thêm:
-
-```text
-PAGE_ACCESS_TOKEN=token_cua_fanpage
-VERIFY_TOKEN=chuoi_ban_tu_dat
-GRAPH_API_VERSION=v24.0
-APP_SECRET=app_secret_cua_meta
-ADMIN_TOKEN=mat_khau_xem_leads
-```
-
-`VERIFY_TOKEN` phải giống hệt token bạn nhập trong Meta Developers khi cấu hình Webhook.
-
-### Bước 4: Kiểm tra Render đã chạy
-
-Mở:
-
-```text
-https://ten-service.onrender.com/health
-```
-
-Nếu thấy kết quả có `"ok": true` là server đã sẵn sàng.
-
-### Bước 5: Kết nối Webhook trong Meta Developers
-
-Trong Meta Developers:
-
-1. Vào app đã tạo.
-2. Mở Messenger hoặc Webhooks cho Page.
-3. Nhập Callback URL:
-
-```text
-https://ten-service.onrender.com/webhook
-```
-
-4. Nhập Verify Token giống `VERIFY_TOKEN` trên Render.
-5. Bấm **Verify and Save**.
-6. Subscribe các event cần thiết:
+6. Verify Token: nhập đúng giá trị `VERIFY_TOKEN`.
+7. Subscribe event:
    - `messages`
    - `messaging_postbacks`
-7. Gắn app với Fanpage và chọn Page Access Token đúng Fanpage.
-
-### Bước 6: Nhắn thử vào Fanpage
-
-Nhắn vào Fanpage bằng tài khoản tester hoặc tài khoản được phép test app. Chatbot sẽ tự động:
-
-- Chào hỏi
-- Hỏi nhu cầu
-- Tư vấn hạng B hoặc A1
-- Báo học phí/hồ sơ
-- Xin số điện thoại
-- Lưu lead để nhân viên gọi lại
-
-### Lưu ý về danh sách đăng ký trên Render
-
-Hiện lead được lưu vào `data/leads.csv` và `data/leads.json`. Cách này phù hợp để chạy thử. Khi dùng thật, nên kết nối thêm Google Sheets, CRM hoặc database để danh sách đăng ký không phụ thuộc vào filesystem của server.
+8. Gắn app với Fanpage.
+9. Nhắn thử vào Fanpage bằng tài khoản tester hoặc tài khoản có quyền test app.
 
 ## Xem danh sách đăng ký
 
-Lead được lưu vào:
+JSON:
 
 ```text
-data/leads.csv
-data/leads.json
+https://ten-du-an.vercel.app/leads?token=ADMIN_TOKEN_CUA_BAN
 ```
 
-Có thể xem qua endpoint:
+CSV:
 
 ```text
-http://localhost:3000/leads?token=ADMIN_TOKEN_CUA_BAN
+https://ten-du-an.vercel.app/leads.csv?token=ADMIN_TOKEN_CUA_BAN
 ```
 
-Khi lên production, nên dùng header:
+Khi dùng production, nên gọi bằng header:
 
 ```text
 Authorization: Bearer ADMIN_TOKEN_CUA_BAN
@@ -225,7 +228,7 @@ Hồ sơ mô tô:
 
 ## Gợi ý vận hành
 
-- Tin đầu tiên nên để khách chọn nhanh bằng quick replies, đừng bắt khách gõ dài.
+- Tin đầu tiên nên để khách chọn nhanh bằng quick replies.
 - Mỗi câu trả lời nên kết thúc bằng một hành động: chọn hạng, xem học phí, xem hồ sơ hoặc gửi số điện thoại.
 - Không nên cam kết đậu tuyệt đối. Nên nói trung tâm hỗ trợ học đúng chương trình, luyện kỹ năng và hướng dẫn hồ sơ đầy đủ.
 - Nên có nhân viên kiểm tra danh sách lead mỗi ngày và cập nhật trạng thái sau khi gọi.
