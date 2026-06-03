@@ -49,6 +49,7 @@ npm start
 Kiểm tra server local:
 
 ```text
+http://localhost:3000/
 http://localhost:3000/health
 ```
 
@@ -140,6 +141,7 @@ https://ten-du-an.vercel.app/webhook
 Kiểm tra tình trạng:
 
 ```text
+https://ten-du-an.vercel.app/
 https://ten-du-an.vercel.app/health
 ```
 
@@ -161,6 +163,60 @@ https://ten-du-an.vercel.app/webhook
    - `messaging_postbacks`
 8. Gắn app với Fanpage.
 9. Nhắn thử vào Fanpage bằng tài khoản tester hoặc tài khoản có quyền test app.
+
+## Sửa lỗi Meta không verify webhook
+
+Nếu Meta báo:
+
+```text
+The callback URL or verify token couldn't be validated
+```
+
+hãy kiểm tra theo thứ tự:
+
+1. Callback URL phải có đủ `https://`, domain `.vercel.app` và path `/webhook`.
+
+```text
+https://fanpage-xi.vercel.app/webhook
+```
+
+Không nhập thiếu như:
+
+```text
+ttps://fanpage-xi.vercel/webhook
+```
+
+2. Verify Token trong Meta phải giống hệt biến `VERIFY_TOKEN` trên Vercel.
+
+Ví dụ nếu Meta nhập:
+
+```text
+Lliama2-2026
+```
+
+thì Vercel Environment Variables cũng phải có:
+
+```text
+VERIFY_TOKEN=Lliama2-2026
+```
+
+3. Sau khi sửa Environment Variables trên Vercel, bấm **Redeploy**.
+
+4. Không bật **Attach a client certificate to Webhook requests**.
+
+5. Test trực tiếp trên trình duyệt:
+
+```text
+https://fanpage-xi.vercel.app/webhook?hub.mode=subscribe&hub.verify_token=Lliama2-2026&hub.challenge=TEST_OK
+```
+
+Nếu đúng, trình duyệt phải chỉ hiện:
+
+```text
+TEST_OK
+```
+
+Nếu hiện `Forbidden`, Verify Token chưa khớp. Nếu hiện `404`, code mới chưa được deploy hoặc route `/webhook` chưa có trên Vercel.
 
 ## Xem danh sách đăng ký
 
