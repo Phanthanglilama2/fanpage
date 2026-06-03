@@ -1,0 +1,13 @@
+{
+  "serverless-session-user": {
+    "psid": "serverless-session-user",
+    "course": "B",
+    "need": "Học ô tô hạng B",
+    "area": "",
+    "schedule": "",
+    "phone": "0912345678",
+    "name": "",
+    "awaiting": "area",
+    "updatedAt": "2026-06-03T14:58:54.418Z"
+  }
+}
