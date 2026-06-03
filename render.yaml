@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: fanpage-driving-school-chatbot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.13.0
+      - key: PORT
+        value: 10000
+      - key: GRAPH_API_VERSION
+        value: v24.0
+      - key: PAGE_ACCESS_TOKEN
+        sync: false
+      - key: VERIFY_TOKEN
+        sync: false
+      - key: APP_SECRET
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false

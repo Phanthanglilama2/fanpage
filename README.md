@@ -68,6 +68,96 @@ Tài liệu Meta nên mở khi cấu hình:
 - Send API: https://developers.facebook.com/docs/messenger-platform/reference/send-api/
 - Messenger Platform overview: https://developers.facebook.com/docs/messenger-platform/
 
+## Deploy bằng Render
+
+Project đã có sẵn file `render.yaml`, nên có thể deploy theo Blueprint trên Render.
+
+### Bước 1: Đưa code lên GitHub
+
+Tạo repository GitHub rồi push toàn bộ project này lên. Render sẽ lấy code từ GitHub để build và chạy webhook.
+
+### Bước 2: Tạo Web Service trên Render
+
+Trong Render:
+
+1. Chọn **New**.
+2. Chọn **Blueprint** nếu muốn Render đọc `render.yaml`, hoặc chọn **Web Service** và trỏ tới repository.
+3. Nếu tạo Web Service thủ công, dùng cấu hình:
+   - Runtime: `Node`
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Health Check Path: `/health`
+
+Render sẽ cấp một domain dạng:
+
+```text
+https://ten-service.onrender.com
+```
+
+Webhook URL dùng cho Meta sẽ là:
+
+```text
+https://ten-service.onrender.com/webhook
+```
+
+### Bước 3: Thêm biến môi trường trên Render
+
+Vào service trên Render, mở **Environment** và thêm:
+
+```text
+PAGE_ACCESS_TOKEN=token_cua_fanpage
+VERIFY_TOKEN=chuoi_ban_tu_dat
+GRAPH_API_VERSION=v24.0
+APP_SECRET=app_secret_cua_meta
+ADMIN_TOKEN=mat_khau_xem_leads
+```
+
+`VERIFY_TOKEN` phải giống hệt token bạn nhập trong Meta Developers khi cấu hình Webhook.
+
+### Bước 4: Kiểm tra Render đã chạy
+
+Mở:
+
+```text
+https://ten-service.onrender.com/health
+```
+
+Nếu thấy kết quả có `"ok": true` là server đã sẵn sàng.
+
+### Bước 5: Kết nối Webhook trong Meta Developers
+
+Trong Meta Developers:
+
+1. Vào app đã tạo.
+2. Mở Messenger hoặc Webhooks cho Page.
+3. Nhập Callback URL:
+
+```text
+https://ten-service.onrender.com/webhook
+```
+
+4. Nhập Verify Token giống `VERIFY_TOKEN` trên Render.
+5. Bấm **Verify and Save**.
+6. Subscribe các event cần thiết:
+   - `messages`
+   - `messaging_postbacks`
+7. Gắn app với Fanpage và chọn Page Access Token đúng Fanpage.
+
+### Bước 6: Nhắn thử vào Fanpage
+
+Nhắn vào Fanpage bằng tài khoản tester hoặc tài khoản được phép test app. Chatbot sẽ tự động:
+
+- Chào hỏi
+- Hỏi nhu cầu
+- Tư vấn hạng B hoặc A1
+- Báo học phí/hồ sơ
+- Xin số điện thoại
+- Lưu lead để nhân viên gọi lại
+
+### Lưu ý về danh sách đăng ký trên Render
+
+Hiện lead được lưu vào `data/leads.csv` và `data/leads.json`. Cách này phù hợp để chạy thử. Khi dùng thật, nên kết nối thêm Google Sheets, CRM hoặc database để danh sách đăng ký không phụ thuộc vào filesystem của server.
+
 ## Xem danh sách đăng ký
 
 Lead được lưu vào:
